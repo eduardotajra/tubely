@@ -56,10 +56,19 @@ export async function createConversion(youtubeUrl: string, quality: AudioQuality
   return conversion
 }
 
+function writeCookiesFile(): string | null {
+  const cookiesB64 = process.env.YOUTUBE_COOKIES_B64
+  if (!cookiesB64) return null
+  const cookiesPath = path.join(os.tmpdir(), 'yt-cookies.txt')
+  fs.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8'))
+  return cookiesPath
+}
+
 async function processConversion(id: string, youtubeUrl: string, quality: AudioQuality) {
   const tmpDir = os.tmpdir()
   const tmpAudio = path.join(tmpDir, `tubely-${id}.%(ext)s`)
   const tmpMp3 = path.join(tmpDir, `tubely-${id}.mp3`)
+  const cookiesFile = writeCookiesFile()
 
   try {
     await db.update(conversions).set({ status: 'processing' }).where(eq(conversions.id, id))
@@ -69,6 +78,7 @@ async function processConversion(id: string, youtubeUrl: string, quality: AudioQ
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
+      ...(cookiesFile ? { cookies: cookiesFile } : {}),
     }) as { title: string; uploader: string; thumbnail: string; duration: number }
 
     const title = sanitizeFilename(info.title ?? 'Unknown')
@@ -90,6 +100,7 @@ async function processConversion(id: string, youtubeUrl: string, quality: AudioQ
       noWarnings: true,
       preferFreeFormats: true,
       ffmpegLocation: ffmpegPath ?? undefined,
+      ...(cookiesFile ? { cookies: cookiesFile } : {}),
     })
 
     let sourceFile: string | null = null
