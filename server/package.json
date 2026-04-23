@@ -1,0 +1,41 @@
+{
+  "name": "tubely-server",
+  "version": "1.0.0",
+  "description": "Tubely - YouTube to MP3 Converter API",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsup src/server.ts --format cjs --out-dir dist",
+    "start": "node dist/server.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.685.0",
+    "@aws-sdk/s3-request-presigner": "^3.685.0",
+    "@distube/ytdl-core": "^4.14.4",
+    "@fastify/cors": "^10.0.1",
+    "@fastify/static": "^8.0.1",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.36.1",
+    "fastify": "^5.1.0",
+    "fastify-type-provider-zod": "^4.0.2",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "pg": "^8.13.0",
+    "uuid": "^11.0.3",
+    "youtube-dl-exec": "^3.1.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.27",
+    "@types/node": "^22.7.5",
+    "@types/pg": "^8.11.10",
+    "@types/uuid": "^10.0.0",
+    "drizzle-kit": "^0.27.1",
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}

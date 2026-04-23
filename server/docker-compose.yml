@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tubely-postgres
+    environment:
+      POSTGRES_USER: docker
+      POSTGRES_PASSWORD: docker
+      POSTGRES_DB: tubely
+    ports:
+      - "5433:5432"
+    volumes:
+      - tubely-pgdata:/var/lib/postgresql/data
+
+volumes:
+  tubely-pgdata:

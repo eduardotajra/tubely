@@ -1,0 +1,1 @@
+ALTER TABLE "conversions" ADD COLUMN "quality" text DEFAULT '192' NOT NULL;
