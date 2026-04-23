@@ -167,7 +167,7 @@ export function HomePage() {
                   key={conversion.id}
                   conversion={conversion}
                   onDelete={(id) => remove(id)}
-                  deleting={deleting && deletingId?.youtubeUrl === conversion.youtubeUrl}
+                  deleting={deleting && deletingId === conversion.id}
                   apiUrl={API_URL}
                 />
               ))}
