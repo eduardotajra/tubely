@@ -78,7 +78,7 @@ async function processConversion(id: string, youtubeUrl: string, quality: AudioQ
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
-      extractor_args: 'youtube:player_client=ios',
+      extractorArgs: 'youtube:player_client=ios',
       ...(cookiesFile ? { cookies: cookiesFile } : {}),
     }) as { title: string; uploader: string; thumbnail: string; duration: number }
 
@@ -101,7 +101,7 @@ async function processConversion(id: string, youtubeUrl: string, quality: AudioQ
       noWarnings: true,
       preferFreeFormats: true,
       ffmpegLocation: ffmpegPath ?? undefined,
-      extractor_args: 'youtube:player_client=ios',
+      extractorArgs: 'youtube:player_client=ios',
       ...(cookiesFile ? { cookies: cookiesFile } : {}),
     })
 
