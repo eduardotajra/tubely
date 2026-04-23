@@ -2,9 +2,10 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Skip yt-dlp binary download — we use system yt-dlp installed in the runtime image
+RUN YOUTUBE_DL_SKIP_DOWNLOAD=true npm ci
 COPY . .
-RUN npm run build && npm prune --omit=dev
+RUN npm run build && YOUTUBE_DL_SKIP_DOWNLOAD=true npm prune --omit=dev
 
 # ──────────────────────────────────────────
 FROM node:20-slim

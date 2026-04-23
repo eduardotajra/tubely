@@ -3,7 +3,12 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { v4 as uuidv4 } from 'uuid'
-import youtubeDl from 'youtube-dl-exec'
+import youtubeDlDefault, { create as createYoutubeDl } from 'youtube-dl-exec'
+
+// On Linux (Docker) use system yt-dlp; on Windows use the bundled binary from npm
+const youtubeDl = process.platform !== 'win32'
+  ? createYoutubeDl('/usr/local/bin/yt-dlp')
+  : youtubeDlDefault
 import ffmpeg from 'fluent-ffmpeg'
 import ffmpegStatic from 'ffmpeg-static'
 import { db } from '../db'
