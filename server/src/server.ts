@@ -60,7 +60,8 @@ async function main() {
       fsd.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8').replace(/\r\n/g, '\n'))
     }
 
-    const testArgs: string[] = ['--no-warnings', '--extractor-args', 'youtube:player_client=web_embedded', '--format', '18/best', '--output', pathd.join(os.tmpdir(), `debug-${videoId}.mp4`)]
+    const jsRuntime = process.platform !== 'win32' ? 'nodejs:/usr/local/bin/node' : 'nodejs'
+    const testArgs: string[] = ['--no-warnings', '--js-runtimes', jsRuntime, '--format', '18/bestaudio/best', '--output', pathd.join(os.tmpdir(), `debug-${videoId}.mp4`)]
     if (cookiesPath) { testArgs.push('--cookies', cookiesPath) }
     testArgs.push(url)
     app.log.info({ cookiesPath, cookiesSet: !!cookiesB64, cookiesLen: cookiesB64?.length }, 'debug download args')
