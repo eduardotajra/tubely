@@ -41,6 +41,50 @@ async function main() {
     }
   })
 
+  app.get('/debug/ytdlp', async (_req, reply) => {
+    const { execFile } = await import('node:child_process')
+    const { promisify } = await import('node:util')
+    const execFileAsync = promisify(execFile)
+    const os = await import('node:os')
+    const fsd = await import('node:fs')
+    const pathd = await import('node:path')
+
+    const ytdlpBin = process.platform !== 'win32' ? '/usr/local/bin/yt-dlp' : 'yt-dlp'
+    const args = ['--version']
+
+    // Write cookies if available
+    const cookiesB64 = process.env.YOUTUBE_COOKIES_B64
+    let cookiesPath: string | null = null
+    if (cookiesB64) {
+      cookiesPath = pathd.join(os.tmpdir(), 'debug-cookies.txt')
+      fsd.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8').replace(/\r\n/g, '\n'))
+    }
+
+    const testArgs = ['--dump-single-json', '--no-warnings', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ']
+    if (cookiesPath) testArgs.push('--cookies', cookiesPath)
+
+    try {
+      const [versionResult, testResult] = await Promise.allSettled([
+        execFileAsync(ytdlpBin, args, { timeout: 5000 }),
+        execFileAsync(ytdlpBin, testArgs, { timeout: 30000 }),
+      ])
+
+      const version = versionResult.status === 'fulfilled' ? versionResult.value.stdout.trim() : String((versionResult as PromiseRejectedResult).reason)
+      let testStatus: string
+      if (testResult.status === 'fulfilled') {
+        const parsed = JSON.parse(testResult.value.stdout)
+        testStatus = `OK: title="${parsed.title}"`
+      } else {
+        const err = (testResult as PromiseRejectedResult).reason as NodeJS.ErrnoException & { stderr?: string; stdout?: string }
+        testStatus = `FAIL: ${err.stderr ?? err.message ?? String(err)}`
+      }
+
+      return reply.send({ ytdlp_version: version, cookies_set: !!cookiesPath, test: testStatus })
+    } catch (e) {
+      return reply.status(500).send({ error: String(e) })
+    }
+  })
+
   await app.register(conversionRoutes)
 
   app.setErrorHandler((error, _request, reply) => {
