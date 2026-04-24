@@ -31,6 +31,16 @@ async function main() {
 
   app.get('/health', async () => ({ status: 'ok' }))
 
+  app.get('/debug/cookies', async () => {
+    const val = process.env.YOUTUBE_COOKIES_B64 ?? ''
+    return {
+      set: val.length > 0,
+      length: val.length,
+      preview: val.slice(0, 40),
+      valid_base64: (() => { try { Buffer.from(val, 'base64'); return true } catch { return false } })(),
+    }
+  })
+
   await app.register(conversionRoutes)
 
   app.setErrorHandler((error, _request, reply) => {
