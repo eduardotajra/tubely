@@ -62,9 +62,9 @@ async function main() {
 
     const testArgs: string[] = [
       '--ignore-config', '--no-warnings',
-      '--extractor-args', 'youtube:player_client=tv_embedded,mweb',
-      '--format', '18/bestaudio/best',
-      '--output', pathd.join(os.tmpdir(), `debug-${videoId}.mp4`),
+      '--extractor-args', 'youtube:player_client=android_testsuite',
+      '--format', 'bestaudio/best',
+      '--output', pathd.join(os.tmpdir(), `debug-${videoId}.%(ext)s`),
     ]
     if (cookiesPath) { testArgs.push('--cookies', cookiesPath) }
     testArgs.push(url)
