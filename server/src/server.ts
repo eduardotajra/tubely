@@ -60,8 +60,10 @@ async function main() {
       fsd.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8').replace(/\r\n/g, '\n'))
     }
 
-    const testArgs = ['--format', '18', '--output', pathd.join(os.tmpdir(), `debug-${videoId}.mp4`), '--no-warnings', '--impersonate', 'chrome', url]
-    if (cookiesPath) testArgs.push('--cookies', cookiesPath)
+    const testArgs: string[] = ['--no-warnings', '--format', '18', '--output', pathd.join(os.tmpdir(), `debug-${videoId}.mp4`)]
+    if (cookiesPath) { testArgs.push('--cookies', cookiesPath) }
+    testArgs.push(url)
+    app.log.info({ cookiesPath, cookiesSet: !!cookiesB64, cookiesLen: cookiesB64?.length }, 'debug download args')
 
     try {
       const { stderr } = await execFileAsync(ytdlpBin, testArgs, { timeout: 60000 })
