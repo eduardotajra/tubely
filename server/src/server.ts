@@ -60,7 +60,7 @@ async function main() {
       fsd.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8').replace(/\r\n/g, '\n'))
     }
 
-    const testArgs = ['--format', '18', '--output', pathd.join(os.tmpdir(), `debug-${videoId}.mp4`), '--no-warnings', url]
+    const testArgs = ['--format', '18', '--output', pathd.join(os.tmpdir(), `debug-${videoId}.mp4`), '--no-warnings', '--impersonate', 'chrome', url]
     if (cookiesPath) testArgs.push('--cookies', cookiesPath)
 
     try {
