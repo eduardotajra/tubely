@@ -24,6 +24,9 @@ export const QUALITY_OPTIONS = ['128', '192', '256', '320'] as const
 export type AudioQuality = (typeof QUALITY_OPTIONS)[number]
 
 const INVIDIOUS_INSTANCES = [
+  'https://yewtu.be',
+  'https://inv.tux.pizza',
+  'https://invidious.nerdvpn.de',
   'https://iv.datura.network',
   'https://invidious.privacyredirect.com',
   'https://inv.riverside.rocks',
@@ -60,8 +63,11 @@ async function getInvidiousInfo(videoId: string): Promise<InvidiousVideo> {
     try {
       const res = await fetchWithTimeout(`${instance}/api/v1/videos/${videoId}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const ct = res.headers.get('content-type') ?? ''
+      if (!ct.includes('application/json')) throw new Error(`Unexpected content-type: ${ct}`)
       return await res.json() as InvidiousVideo
     } catch (e) {
+      console.log(`[invidious] ${instance} failed: ${e instanceof Error ? e.message : e}`)
       lastErr = e
     }
   }
