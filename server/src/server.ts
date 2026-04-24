@@ -60,25 +60,85 @@ async function main() {
       fsd.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8').replace(/\r\n/g, '\n'))
     }
 
-    const testArgs: string[] = [
-      '--ignore-config', '--no-warnings',
-      '--extractor-args', 'youtube:player_client=android_testsuite',
-      '--format', 'bestaudio/best',
-      '--output', pathd.join(os.tmpdir(), `debug-${videoId}.%(ext)s`),
+    const jsRuntime = process.platform !== 'win32' ? 'nodejs:/usr/local/bin/node' : 'nodejs'
+    const attempts = [
+      {
+        label: 'js-runtimes+cookies+format18',
+        args: [
+          '--ignore-config', '--no-warnings',
+          '--js-runtimes', jsRuntime,
+          '--format', '18/bestaudio/best',
+          '--output', pathd.join(os.tmpdir(), `debug-${videoId}.%(ext)s`),
+          ...(cookiesPath ? ['--cookies', cookiesPath] : []),
+          url,
+        ],
+      },
+      {
+        label: 'tv_embedded+cookies',
+        args: [
+          '--ignore-config', '--no-warnings',
+          '--extractor-args', 'youtube:player_client=tv_embedded',
+          '--format', 'bestaudio/best',
+          '--output', pathd.join(os.tmpdir(), `debug-${videoId}.%(ext)s`),
+          ...(cookiesPath ? ['--cookies', cookiesPath] : []),
+          url,
+        ],
+      },
+      {
+        label: 'ios+cookies',
+        args: [
+          '--ignore-config', '--no-warnings',
+          '--extractor-args', 'youtube:player_client=ios',
+          '--format', 'bestaudio/best',
+          '--output', pathd.join(os.tmpdir(), `debug-${videoId}.%(ext)s`),
+          ...(cookiesPath ? ['--cookies', cookiesPath] : []),
+          url,
+        ],
+      },
     ]
-    if (cookiesPath) { testArgs.push('--cookies', cookiesPath) }
-    testArgs.push(url)
-    app.log.info({ cookiesPath, cookiesSet: !!cookiesB64, cookiesLen: cookiesB64?.length }, 'debug download args')
 
+    const results: Record<string, string> = {}
+    for (const attempt of attempts) {
+      try {
+        const { stderr } = await execFileAsync(ytdlpBin, attempt.args, { timeout: 90000 })
+        // clean up any downloaded file
+        for (const ext of ['mp4', 'm4a', 'webm', 'opus', 'mp3']) {
+          const f = pathd.join(os.tmpdir(), `debug-${videoId}.${ext}`)
+          if (fsd.existsSync(f)) fsd.unlinkSync(f)
+        }
+        results[attempt.label] = `OK: ${stderr.slice(0, 200)}`
+        break
+      } catch (e: unknown) {
+        const err = e as { stderr?: string; message?: string }
+        results[attempt.label] = `FAIL: ${(err.stderr ?? err.message ?? String(e)).slice(0, 400)}`
+      }
+    }
+    return reply.send(results)
+  })
+
+  app.get('/debug/formats/:videoId', async (req, reply) => {
+    const { execFile } = await import('node:child_process')
+    const { promisify } = await import('node:util')
+    const execFileAsync = promisify(execFile)
+    const os = await import('node:os')
+    const fsd = await import('node:fs')
+    const pathd = await import('node:path')
+    const { videoId } = req.params as { videoId: string }
+    const ytdlpBin = process.platform !== 'win32' ? '/usr/local/bin/yt-dlp' : 'yt-dlp'
+    const url = `https://www.youtube.com/watch?v=${videoId}`
+    const cookiesB64 = process.env.YOUTUBE_COOKIES_B64
+    let cookiesPath: string | null = null
+    if (cookiesB64) {
+      cookiesPath = pathd.join(os.tmpdir(), 'debug-fmt-cookies.txt')
+      fsd.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8').replace(/\r\n/g, '\n'))
+    }
+    const args = ['--ignore-config', '--no-warnings', '--list-formats', ...(cookiesPath ? ['--cookies', cookiesPath] : []), url]
     try {
-      const { stderr } = await execFileAsync(ytdlpBin, testArgs, { timeout: 60000 })
-      const outFile = pathd.join(os.tmpdir(), `debug-${videoId}.mp4`)
-      const exists = fsd.existsSync(outFile)
-      if (exists) fsd.unlinkSync(outFile)
-      return reply.send({ status: 'OK', stderr: stderr.slice(0, 500) })
+      const { stdout, stderr } = await execFileAsync(ytdlpBin, args, { timeout: 30000 })
+      return reply.send({ formats: (stdout + stderr).slice(0, 2000) })
     } catch (e: unknown) {
       const err = e as { stderr?: string; stdout?: string; message?: string }
-      return reply.send({ status: 'FAIL', error: (err.stderr ?? err.message ?? String(e)).slice(0, 1000) })
+      return reply.send({ error: (err.stderr ?? err.stdout ?? err.message ?? String(e)).slice(0, 1000) })
     }
   })
 
