@@ -82,6 +82,35 @@ async function main() {
     }
   })
 
+  app.get('/debug/piped/:videoId', async (req, reply) => {
+    const { videoId } = req.params as { videoId: string }
+    const instances = [
+      'https://pipedapi.kavin.rocks',
+      'https://pipedapi.adminforge.de',
+      'https://api.piped.projectsegfau.lt',
+      'https://pipedapi.drgns.space',
+    ]
+    const results: Record<string, unknown> = {}
+    for (const inst of instances) {
+      try {
+        const ctrl = new AbortController()
+        const tid = setTimeout(() => ctrl.abort(), 10000)
+        const res = await fetch(`${inst}/streams/${videoId}`, { signal: ctrl.signal })
+        clearTimeout(tid)
+        const ct = res.headers.get('content-type') ?? ''
+        if (!ct.includes('application/json')) {
+          results[inst] = `HTML/other (${res.status}) - content-type: ${ct}`
+          continue
+        }
+        const data = await res.json() as { title?: string; audioStreams?: { url: string; bitrate?: number }[] }
+        results[inst] = { ok: true, title: data.title, audioCount: data.audioStreams?.length ?? 0, firstAudioUrl: data.audioStreams?.[0]?.url?.slice(0, 80) }
+      } catch (e: unknown) {
+        results[inst] = String(e instanceof Error ? e.message : e)
+      }
+    }
+    return reply.send(results)
+  })
+
   app.get('/debug/ytdlp', async (_req, reply) => {
     const { execFile } = await import('node:child_process')
     const { promisify } = await import('node:util')
