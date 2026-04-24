@@ -63,11 +63,12 @@ async function main() {
     const jsRuntime = process.platform !== 'win32' ? 'nodejs:/usr/local/bin/node' : 'nodejs'
     const attempts = [
       {
-        label: 'js-runtimes+cookies+format18',
+        label: 'web+bgutil_pot+cookies',
         args: [
           '--ignore-config', '--no-warnings',
+          '--extractor-args', 'youtube:player_client=web',
           '--js-runtimes', jsRuntime,
-          '--format', '18/bestaudio/best',
+          '--format', 'bestaudio/best',
           '--output', pathd.join(os.tmpdir(), `debug-${videoId}.%(ext)s`),
           ...(cookiesPath ? ['--cookies', cookiesPath] : []),
           url,
@@ -85,11 +86,11 @@ async function main() {
         ],
       },
       {
-        label: 'ios+cookies',
+        label: 'default+cookies+format18',
         args: [
           '--ignore-config', '--no-warnings',
-          '--extractor-args', 'youtube:player_client=ios',
-          '--format', 'bestaudio/best',
+          '--js-runtimes', jsRuntime,
+          '--format', '18/bestaudio/best',
           '--output', pathd.join(os.tmpdir(), `debug-${videoId}.%(ext)s`),
           ...(cookiesPath ? ['--cookies', cookiesPath] : []),
           url,

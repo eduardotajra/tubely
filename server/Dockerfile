@@ -11,11 +11,12 @@ RUN npm run build && npm prune --omit=dev --ignore-scripts
 FROM node:20-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg python3 curl ca-certificates && \
+    ffmpeg python3 python3-pip curl ca-certificates && \
     curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
          -o /usr/local/bin/yt-dlp && \
     chmod +x /usr/local/bin/yt-dlp && \
-    rm -rf /var/lib/apt/lists/*
+    pip3 install --break-system-packages bgutil-ytdlp-pot-provider && \
+    rm -rf /var/lib/apt/lists/* /root/.cache/pip
 
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
