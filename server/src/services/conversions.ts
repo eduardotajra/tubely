@@ -164,14 +164,11 @@ async function processConversion(id: string, youtubeUrl: string, videoId: string
     // --- Try yt-dlp first ---
     let ytdlFailed = false
     try {
-      const nodeRuntime = process.platform !== 'win32' ? 'nodejs:/usr/local/bin/node' : 'nodejs'
       const info = await youtubeDl(youtubeUrl, {
         dumpSingleJson: true,
         noCheckCertificates: true,
         noWarnings: true,
         preferFreeFormats: true,
-        // @ts-expect-error jsRuntimes/extractorArgs valid but missing from types
-        jsRuntimes: nodeRuntime,
         ...(cookiesFile ? { cookies: cookiesFile } : {}),
       }) as { title: string; uploader: string; thumbnail: string; duration: number }
 
@@ -185,21 +182,20 @@ async function processConversion(id: string, youtubeUrl: string, videoId: string
         .set({ title, author, thumbnailUrl: thumbnail, duration })
         .where(eq(conversions.id, id))
 
+      // Format 18 is a legacy muxed mp4 that does not require n-signature solving.
+      // We extract audio from it with ffmpeg rather than relying on DASH audio-only
+      // streams, which need the EJS challenge solver that isn't available on Render.
+      const tmpMp4 = path.join(tmpDir, `tubely-${id}.mp4`)
       await youtubeDl(youtubeUrl, {
-        extractAudio: true,
-        audioFormat: 'mp3',
-        audioQuality: Number(quality),
-        output: tmpAudio,
+        format: '18/bestvideo[height<=360]+bestaudio/best',
+        output: tmpMp4,
         noCheckCertificates: true,
         noWarnings: true,
-        preferFreeFormats: true,
         ffmpegLocation: ffmpegPath ?? undefined,
-        // @ts-expect-error jsRuntimes valid but missing from types
-        jsRuntimes: nodeRuntime,
         ...(cookiesFile ? { cookies: cookiesFile } : {}),
       })
 
-      for (const ext of ['mp3', 'webm', 'm4a', 'opus']) {
+      for (const ext of ['mp4', 'mp3', 'webm', 'm4a', 'opus']) {
         const candidate = path.join(tmpDir, `tubely-${id}.${ext}`)
         if (fs.existsSync(candidate)) { sourceFile = candidate; break }
       }
@@ -255,7 +251,8 @@ async function processConversion(id: string, youtubeUrl: string, videoId: string
       .set({ status: 'failed', errorMsg })
       .where(eq(conversions.id, id))
   } finally {
-    for (const f of [tmpMp3, tmpRaw]) {
+    const tmpMp4Cleanup = path.join(os.tmpdir(), `tubely-${id}.mp4`)
+    for (const f of [tmpMp3, tmpRaw, tmpMp4Cleanup]) {
       if (fs.existsSync(f)) fs.unlinkSync(f)
     }
   }
