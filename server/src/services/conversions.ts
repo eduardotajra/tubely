@@ -141,7 +141,8 @@ function writeCookiesFile(): string | null {
   const cookiesB64 = process.env.YOUTUBE_COOKIES_B64
   if (!cookiesB64) return null
   const cookiesPath = path.join(os.tmpdir(), 'yt-cookies.txt')
-  fs.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8'))
+  const content = Buffer.from(cookiesB64, 'base64').toString('utf8').replace(/\r\n/g, '\n')
+  fs.writeFileSync(cookiesPath, content)
   return cookiesPath
 }
 
