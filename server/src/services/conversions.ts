@@ -164,13 +164,14 @@ async function processConversion(id: string, youtubeUrl: string, videoId: string
     // --- Try yt-dlp first ---
     let ytdlFailed = false
     try {
+      const nodeRuntime = process.platform !== 'win32' ? 'nodejs:/usr/local/bin/node' : 'nodejs'
       const info = await youtubeDl(youtubeUrl, {
         dumpSingleJson: true,
         noCheckCertificates: true,
         noWarnings: true,
         preferFreeFormats: true,
-        // @ts-expect-error extractorArgs is valid but missing from types
-        extractorArgs: 'youtube:player_client=android_vr',
+        // @ts-expect-error jsRuntimes/extractorArgs valid but missing from types
+        jsRuntimes: nodeRuntime,
         ...(cookiesFile ? { cookies: cookiesFile } : {}),
       }) as { title: string; uploader: string; thumbnail: string; duration: number }
 
@@ -193,8 +194,8 @@ async function processConversion(id: string, youtubeUrl: string, videoId: string
         noWarnings: true,
         preferFreeFormats: true,
         ffmpegLocation: ffmpegPath ?? undefined,
-        // @ts-expect-error extractorArgs valid but missing from types
-        extractorArgs: 'youtube:player_client=android_vr',
+        // @ts-expect-error jsRuntimes valid but missing from types
+        jsRuntimes: nodeRuntime,
         ...(cookiesFile ? { cookies: cookiesFile } : {}),
       })
 
