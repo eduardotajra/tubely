@@ -41,6 +41,40 @@ async function main() {
     }
   })
 
+  app.get('/debug/download/:videoId', async (req, reply) => {
+    const { execFile } = await import('node:child_process')
+    const { promisify } = await import('node:util')
+    const execFileAsync = promisify(execFile)
+    const os = await import('node:os')
+    const fsd = await import('node:fs')
+    const pathd = await import('node:path')
+    const { videoId } = req.params as { videoId: string }
+
+    const ytdlpBin = process.platform !== 'win32' ? '/usr/local/bin/yt-dlp' : 'yt-dlp'
+    const url = `https://www.youtube.com/watch?v=${videoId}`
+
+    const cookiesB64 = process.env.YOUTUBE_COOKIES_B64
+    let cookiesPath: string | null = null
+    if (cookiesB64) {
+      cookiesPath = pathd.join(os.tmpdir(), 'debug-cookies.txt')
+      fsd.writeFileSync(cookiesPath, Buffer.from(cookiesB64, 'base64').toString('utf8').replace(/\r\n/g, '\n'))
+    }
+
+    const testArgs = ['--format', '18', '--output', pathd.join(os.tmpdir(), `debug-${videoId}.mp4`), '--no-warnings', url]
+    if (cookiesPath) testArgs.push('--cookies', cookiesPath)
+
+    try {
+      const { stderr } = await execFileAsync(ytdlpBin, testArgs, { timeout: 60000 })
+      const outFile = pathd.join(os.tmpdir(), `debug-${videoId}.mp4`)
+      const exists = fsd.existsSync(outFile)
+      if (exists) fsd.unlinkSync(outFile)
+      return reply.send({ status: 'OK', stderr: stderr.slice(0, 500) })
+    } catch (e: unknown) {
+      const err = e as { stderr?: string; stdout?: string; message?: string }
+      return reply.send({ status: 'FAIL', error: (err.stderr ?? err.message ?? String(e)).slice(0, 1000) })
+    }
+  })
+
   app.get('/debug/ytdlp', async (_req, reply) => {
     const { execFile } = await import('node:child_process')
     const { promisify } = await import('node:util')
