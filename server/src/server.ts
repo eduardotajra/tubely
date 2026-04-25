@@ -143,6 +143,40 @@ async function main() {
     }
   })
 
+  app.get('/debug/cobalt/:videoId', async (req, reply) => {
+    const { videoId } = req.params as { videoId: string }
+    const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`
+    const instances = [
+      'https://api.cobalt.tools',
+      'https://cobalt.privacyredirect.com',
+      'https://cobalt.gnurl.de',
+    ]
+    const results: Record<string, unknown> = {}
+    for (const inst of instances) {
+      try {
+        const ctrl = new AbortController()
+        const tid = setTimeout(() => ctrl.abort(), 15000)
+        const res = await fetch(inst + '/', {
+          method: 'POST',
+          signal: ctrl.signal,
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ url: youtubeUrl, downloadMode: 'audio', audioFormat: 'mp3', audioBitrate: '192' }),
+        })
+        clearTimeout(tid)
+        const ct = res.headers.get('content-type') ?? ''
+        if (!ct.includes('application/json')) {
+          results[inst] = `Non-JSON ${res.status} (${ct})`
+          continue
+        }
+        const data = await res.json()
+        results[inst] = { status: res.status, body: data }
+      } catch (e: unknown) {
+        results[inst] = String(e instanceof Error ? e.message : e)
+      }
+    }
+    return reply.send(results)
+  })
+
   app.get('/debug/piped/:videoId', async (req, reply) => {
     const { videoId } = req.params as { videoId: string }
     const instances = [
